@@ -1,0 +1,9 @@
+version: '3'
+services:
+  app:
+    build: ./docker
+    tty: true
+    volumes:
+      - .:/go/src/work
+    ports:
+      - "1323:1323"
