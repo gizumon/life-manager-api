@@ -1,5 +1,7 @@
-###
-GET http://127.0.0.1:1323/
+## HTTP request sample
 
 ### Health check
-GET http://localhost:1323/api/health
+GET http://localhost:1323/api/v1/health
+
+### Webhook
+POST http://127.0.0.1:1323/api/v1/line/webhook

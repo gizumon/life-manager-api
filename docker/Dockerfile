@@ -4,4 +4,4 @@ RUN mkdir /go/src/work
 WORKDIR /go/src/work
 ADD . /go/src/work
 
-CMD ["go", "run", "server.go"]
+CMD ["go", "run", "main.go"]
