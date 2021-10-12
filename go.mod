@@ -3,6 +3,7 @@ module gizumon.com/life-manager-api
 go 1.16
 
 require (
+	firebase.google.com/go/v4 v4.6.0 // indirect
 	github.com/aquasecurity/libbpfgo v0.2.1-libbpf-0.4.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
@@ -20,4 +21,6 @@ require (
 	golang.org/x/arch v0.0.0-20210901143047-ebb09ed340f1 // indirect
 	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
+	google.golang.org/api v0.57.0 // indirect
+	google.golang.org/grpc v1.40.0 // indirect
 )

@@ -2,9 +2,9 @@ package handlers
 
 import (
 	// "fmt"
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
@@ -12,16 +12,41 @@ import (
 	// "github.com/line/line-bot-sdk-go/v7/linebot/httphandler"
 	"gizumon.com/life-manager-api/actions"
 	"gizumon.com/life-manager-api/constants"
+	"gizumon.com/life-manager-api/helpers/line_utils"
+	"gizumon.com/life-manager-api/models"
+	"gizumon.com/life-manager-api/requests"
 	"gizumon.com/life-manager-api/responses"
 )
 
-func ChatbotHandler(c echo.Context) error {
+type ChatbotHandler interface {
+	HandleMessage(c echo.Context) error
+}
+
+type chatbotHandler struct {
+	TobuyAction actions.TobuyAction
+}
+
+// PayAction actions.PayAction
+// TodoAction actions.TodoAction
+// HelpAction actions.HelpAction
+// ChatbotAction actions.ChatbotAction
+
+func NewChatbotHandler(
+	tobuyAction actions.TobuyAction,
+) ChatbotHandler {
+	return &chatbotHandler{
+		TobuyAction: tobuyAction,
+	}
+}
+
+// parse
+func (h *chatbotHandler) HandleMessage(c echo.Context) error {
 	responseData := []responses.ResultData{}
 	bot := c.Get(constants.LINE_HANDLER_KEY).(*linebot.Client)
 	events, err := bot.ParseRequest(c.Request())
 
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusInternalServerError, responses.ErrorPlain("No Events", err.Error()))
 	}
 
 	for _, event := range events {
@@ -30,13 +55,15 @@ func ChatbotHandler(c echo.Context) error {
 		if event.Type == linebot.EventTypeMessage {
 			switch message := event.Message.(type) {
 			case *linebot.TextMessage:
-				res, err := handleWithMessage(message.Text, c)
-				data.Message = res
-				data.Success = true
+				res, err := handleTextMessage(message.Text, h, c)
+
 				if err != nil {
 					fmt.Print(err)
-					data.Success = false
+					return echo.NewHTTPError(http.StatusBadRequest, responses.ErrorPlain("Bad request", err.Error()))
 				}
+
+				data.Message = res.Results[0].Message
+				data.Success = true
 			}
 			responseData = append(responseData, data)
 		}
@@ -45,54 +72,45 @@ func ChatbotHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, responses.SuccessEvents(responseData))
 }
 
-func handleWithMessage(text string, c echo.Context) (string, error) {
-	if hasPayCmdKey(text) {
-		return actions.PayCmdAction(c)
+func handleTextMessage(text string, h *chatbotHandler, c echo.Context) (*responses.SuccessResponse, error) {
+	var res *responses.SuccessResponse = &responses.SuccessResponse{}
+	var err error = nil
+	args := textSeparateToArgs(text)
+
+	switch args.Cmd {
+	case "tobuy":
+		res, err = handleTobuyAction(args, h, c)
+	default:
+		err = errors.New("unknown cmd key")
 	}
-	if hasTodoCmdKey(text) {
-		return actions.HelpCmdAction(c)
-	}
-	if hasTobuyCmdKey(text) {
-		return actions.HelpCmdAction(c)
-	}
-	if hasHelpCmdKey(text) {
-		return actions.HelpCmdAction(c)
-	}
-	return actions.HelpCmdAction(c)
+
+	return res, err
 }
 
-func hasPayCmdKey(str string) bool {
-	for _, key := range constants.PAY_CMD_KEYS {
-		if strings.Contains(str, key) {
-			return true
-		}
+func handleTobuyAction(args *requests.Args, h *chatbotHandler, c echo.Context) (*responses.SuccessResponse, error) {
+	switch args.Action {
+	case models.Add:
+		return h.TobuyAction.Add(c, args)
+	case models.List:
+		return h.TobuyAction.GetList(c, args)
+	default:
+		return nil, errors.New("unknown action")
 	}
-	return false
 }
 
-func hasTodoCmdKey(str string) bool {
-	for _, key := range constants.TODO_CMD_KEYS {
-		if strings.Contains(str, key) {
-			return true
+func textSeparateToArgs(text string) *requests.Args {
+	switch {
+	// case line_utils.HasPayCmdKey(text):
+	// 	return requests.SeparateTextToPayArgs(text)
+	case line_utils.HasTobuyCmdKey(text):
+		return requests.SeparateTextToTobuyArgs(text)
+	// case line_utils.HasTodoCmdKey(text):
+	// 	return requests.SeparateTextToTodoArgs(text)
+	case line_utils.HasHelpCmdKey(text):
+		return &requests.Args{
+			CommonArgs: requests.CommonArgs{Cmd: "@help", Action: ""},
 		}
+	default:
+		return &requests.Args{}
 	}
-	return false
-}
-
-func hasTobuyCmdKey(str string) bool {
-	for _, key := range constants.TOBUY_CMD_KEYS {
-		if strings.Contains(str, key) {
-			return true
-		}
-	}
-	return false
-}
-
-func hasHelpCmdKey(str string) bool {
-	for _, key := range constants.HELP_CMD_KEYS {
-		if strings.Contains(str, key) {
-			return true
-		}
-	}
-	return false
 }

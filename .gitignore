@@ -14,3 +14,6 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 .env
+
+# hide secret
+life-manager-app-303611-firebase-adminsdk-ikw1j-3e454b96a2.json

@@ -8,8 +8,8 @@ import (
 	"gizumon.com/life-manager-api/constants"
 )
 
-func PayCmdAction(c echo.Context) (string, error) {
-	message := "ごめんね、Payの機能はまだ開発中です🙇‍♂️"
+func TodoCmdAction(c echo.Context) (string, error) {
+	message := "ごめんね、ToDoの機能はまだ開発中です🙇‍♂️"
 	bot := c.Get(constants.LINE_HANDLER_KEY).(*linebot.Client)
 	event := c.Get(constants.LINE_EVENT_KEY).(*linebot.Event)
 	text := event.Message.(*linebot.TextMessage).Text
